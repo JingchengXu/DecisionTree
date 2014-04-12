@@ -1,0 +1,128 @@
+Machine Learning
+Problem Set2
+Jingcheng Xu
+
+Note: My unpruned decision train working on the training dataset provided 86.58% accuracy, for validation set provide 76.12%
+      My pruned decision train working on training dataset 86.63 % accuracy, for validation set provide 76.38%
+1. 
+I represent my decision tree in python by using a nested dictionary
+
+2.
+I read the examples from the train.csv ,and save them in a list called dataSet,I save the labels
+and data Set Seperately.
+for example 
+labels=['salary', 'commission', 'age', 'gender', 'marital', 'elevel', 'car', 'zipcode', 'creditscore', 'hvalue', 'hyears', 'loan', 'group']
+dataSet[0]=[127596, 0, 71, 'm', 'd', 0, 14, 6, 584, 623730, 5, 301357, 0]
+
+3.
+I choose the attribute according to the infoGain of each node, and I should consider the fact
+that continuous and nominal should implement different algorithm. I give a short part of my program to illustrate the question.The first is to calculate 
+a continous value, we should first split the data by first sorting a certain feature and then choose where the group value changes ,choose such point as
+the point for seprating data, test its infoGain, and find a best one in the continous feature. 
+For discrete value ,it could be easy job, we just need to seprate according to its value and find the largest infoGain.Remember to record the bestFeature.
+
+Part1: if type(featList[0])==type(1):
+            temp=sorted(dataSet,key=itemgetter(i))
+            length=len(temp)
+            for j in range (0,length-1):
+                if temp[j][-1]!=temp[j+1][-1]:
+                    small,big,point=splitDataSet_number(temp,i,j)
+                    prob_1=len(small)/float(len(dataSet))
+                    prob_2=len(big)/float(len(dataSet))
+                    newEntropy=prob_1*calcShannonEnt(small)+prob_2*calcShannonEnt(big)
+                    infoGain=baseEntropy-newEntropy
+                    if(infoGain>bestInfoGain):
+                        bestInfoGain=infoGain
+                        bestFeature=i
+                        bestpoint=point
+                        best_small=small
+                        best_big=big
+                            
+Part2:  if type(featList[0])!=type(1):
+            newEntropy=0
+            for value in uniqueVals:
+                ret=splitDataSet_string(dataSet,i,value)
+                prob=len(ret)/float(len(dataSet))
+                newEntropy+=prob*calcShannonEnt(ret)
+            infoGain=baseEntropy-newEntropy
+            if(infoGain>bestInfoGain):
+                bestInfoGain=infoGain
+                bestFeature=i
+
+4.
+I handle the missing attributes in two ways.
+a. Just ignore the attribute with missing attribute , which provides a accurate Rate about 79%
+without pruning
+b. Assign the most common value to the attribute with missing value , unfotrunatelly provides only 76.12% accurate rate, though it decreases the right rate, I still use this way to deal with 
+the missing attribute and build trees, as in most cases we can not just ignore a certain data.
+
+5. 
+I set two ways for the process of tree creating to stop .
+a. When the remained data are in the same group for example, all 1 or 0
+b. When there provides no condition for doing more seprate in a single node, then we will choose 
+the majority of 1 or 0 in this node's dataSet
+
+6.
+To give a normal disjunctive form we need to find every path from root to the leaf ,the method is given in get_pathes function, then we wil find out all the pathes from root to leaf.
+Call the function 
+>>> myTree=trees.grabtree('tree_1.txt')
+>>> pathes=trees.get_disjunctive(myTree)
+>>> unique=trees.unique_pathes(pathes)
+>>> unique[0]
+['loan', '<263212.5', 'marital', 'k', 'gender', 'm', 'elevel', '>3.0', 'age', '<59.5', 'elevel', '>4.0']
+The result above is the precondition of a certain disjunctive form we can regard each comma as '/\'
+Then I will give a sample of how to show the result of such precondition
+
+['loan', '<263212.5', 'marital', 'k', 'gender', 'm', 'elevel', '>3.0', 'age', '<59.5', 'elevel', '>4.0']
+>>> trees.postcondition(myTree,unique[0])
+0
+
+Then the above condition is a boolean output with normal disjunctive form
+
+7.
+The precondition is:
+If loan lower than 26312.5 and marital is k, and gender is m, and elevel higher than 3 and age less than 59.5 and elevel higher than 4.0
+Then the result is negative(0)
+
+8.
+I implement the pruning by post-pruning strategy using validation set, the sub-replacement which keep replacing the subtree which will increase the accurate rate by comparing the result with the validation set.
+
+9.
+>>> pathes=trees.get_disjunctive(prunedtree)
+>>> unique=trees.unique_pathes(pathes)
+>>> pathes[1]
+['loan', '<263212.5', 'marital', 'k', 'gender', 'm', 'elevel', '>3.0', 'age', '<59.5', 'elevel', '<4.0', 'age', '>40.5', 'salary', '<107867.0', 'car', '<18.5']
+>>> trees.postcondition(prunedtree,pathes[1])
+1
+
+We give the precondition and postcondition in a certain term and the boolean formula according to the training dataset based on my pruned tree as above.
+This is just like 
+boolean value= loan<263212.5 /\ marital=='k' /\ geder=='m' /\ 4.0>elvel>3.0 /\ 40.5<age<59.5/\ salary<107867 /\ car<18.5
+
+10.
+Run the function getNumLeafs and getTreeDepth
+The unpruned tree has the following result in python
+
+>>> NumLeafs=trees.getNumLeafs(c)
+>>> Depth=trees.getTreeDepth(c)
+>>> NumLeafs
+1027
+>>> Depth
+19
+
+For the pruned tree
+>>> trees.getNumLeafs(best)
+1023
+>>> trees.getTreeDepth(best)
+19
+
+Four Leaf were cut to optimize the decision tree.
+And the depth did not change
+
+11.
+The accuracy increase from unpruned to pruned is from 76.12% to 76.38% ,quite small, I think it is because my unpreuned tree did not overfit very much.
+
+12.
+I think the unpruned tree will be better, as mentioned in question 11, myTree did not overfit too much ,only a special case will increase my accuracy on validation set, we can not gurantee
+such case will also work in the test set, so I would rather choose the unpruned tree for the 
+test set 
